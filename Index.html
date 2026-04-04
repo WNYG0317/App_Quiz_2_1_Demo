@@ -107,6 +107,39 @@
 
   </section>
 
+  <!-- CSV列割り当てプレビューモーダル -->
+  <div id="preview-overlay">
+    <div id="preview-modal">
+      <p class="preview-title">📋 列の割り当てを確認</p>
+      <p id="preview-filename"></p>
+
+      <div class="col-assign">
+        <div class="assign-row">
+          <label><span class="badge-front">表面</span><span class="required">必須</span></label>
+          <select id="assign-front"></select>
+        </div>
+        <div class="assign-row">
+          <label><span class="badge-back">裏面</span><span class="required">必須</span></label>
+          <select id="assign-back"></select>
+        </div>
+        <div class="assign-row">
+          <label><span class="badge-note">例文・補足</span><span class="optional">任意</span></label>
+          <select id="assign-note"></select>
+        </div>
+      </div>
+
+      <p class="preview-row-info" id="preview-row-info"></p>
+      <div class="preview-table-wrap">
+        <table id="preview-table"></table>
+      </div>
+
+      <div class="preview-actions">
+        <button type="button" class="btn-cancel" id="preview-cancel-btn">キャンセル</button>
+        <button type="button" class="btn-confirm" id="preview-confirm-btn">📤 アップロード</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 設定ファイル（Supabase URL / Key） -->

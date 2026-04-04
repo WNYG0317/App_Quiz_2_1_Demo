@@ -96,6 +96,215 @@ function splitCSVLine(line) {
 }
 
 /* ============================================================
+   CSV 生パース（列割り当て用）
+============================================================ */
+function parseCSVRaw(text) {
+  const allRows = text.trim().split(/\r?\n/).map(splitCSVLine);
+  if (allRows.length === 0) return { headers: [], rows: [], hasHeader: false };
+
+  const headerKw = /^(裏面|back|answer|意味|english|japanese|word|front|表面|term|definition|note|例文|補足)/i;
+  let hasHeader = false;
+  let headers = [];
+  let rows = [];
+
+  if (allRows.length > 1 && allRows[0].length >= 1 && headerKw.test(allRows[0][0])) {
+    hasHeader = true;
+    headers = allRows[0].map(h => h.trim() || '(空)');
+    rows = allRows.slice(1).filter(r => r.some(c => c.trim()));
+  } else {
+    hasHeader = false;
+    headers = allRows[0].map((_, i) => `列 ${i + 1}`);
+    rows = allRows.filter(r => r.some(c => c.trim()));
+  }
+
+  // 列数を統一（最大列数に合わせてパディング）
+  const maxCols = Math.max(...rows.map(r => r.length), headers.length);
+  headers = headers.concat(
+    Array.from({ length: Math.max(0, maxCols - headers.length) }, (_, i) => `列 ${headers.length + i + 1}`)
+  );
+  rows = rows.map(r => {
+    const padded = [...r];
+    while (padded.length < maxCols) padded.push('');
+    return padded;
+  });
+
+  return { headers, rows, hasHeader };
+}
+
+/* ============================================================
+   プレビューモーダル
+============================================================ */
+let previewFile = null;
+let previewData = null;
+
+const previewOverlay    = document.getElementById('preview-overlay');
+const previewFilenameEl = document.getElementById('preview-filename');
+const previewRowInfo    = document.getElementById('preview-row-info');
+const assignFront       = document.getElementById('assign-front');
+const assignBack        = document.getElementById('assign-back');
+const assignNote        = document.getElementById('assign-note');
+const previewTable      = document.getElementById('preview-table');
+
+function buildSelectOptions(sel, headers, defaultIdx, allowNone) {
+  sel.innerHTML = '';
+  if (allowNone) {
+    const opt = document.createElement('option');
+    opt.value = -1;
+    opt.textContent = '（なし）';
+    if (defaultIdx < 0) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  headers.forEach((h, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `列${i + 1}: ${h}`;
+    if (i === defaultIdx) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function showPreview(file, rawData) {
+  previewFile = file;
+  previewData = rawData;
+
+  previewFilenameEl.textContent = file.name;
+
+  const { headers } = rawData;
+  buildSelectOptions(assignFront, headers, 0,          false);
+  buildSelectOptions(assignBack,  headers, Math.min(1, headers.length - 1), false);
+  buildSelectOptions(assignNote,  headers, headers.length > 2 ? 2 : -1, true);
+
+  updatePreviewTable();
+  previewOverlay.style.display = 'flex';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updatePreviewTable() {
+  const frontCol = parseInt(assignFront.value);
+  const backCol  = parseInt(assignBack.value);
+  const noteCol  = parseInt(assignNote.value);
+  const { headers, rows } = previewData;
+
+  const PREVIEW_ROWS = 6;
+  const sample = rows.slice(0, PREVIEW_ROWS);
+  const remaining = rows.length - sample.length;
+  previewRowInfo.textContent =
+    `全 ${rows.length} 件のデータ` +
+    (remaining > 0 ? `（先頭 ${PREVIEW_ROWS} 件を表示）` : '');
+
+  const colClass = (i) => {
+    if (i === frontCol) return 'col-front';
+    if (i === backCol)  return 'col-back';
+    if (i === noteCol && noteCol >= 0) return 'col-note';
+    return 'col-unused';
+  };
+
+  const colTag = (i) => {
+    if (i === frontCol) return '<span class="col-tag col-tag-front">表面</span>';
+    if (i === backCol)  return '<span class="col-tag col-tag-back">裏面</span>';
+    if (i === noteCol && noteCol >= 0) return '<span class="col-tag col-tag-note">例文</span>';
+    return '';
+  };
+
+  let html = '<thead><tr>';
+  headers.forEach((h, i) => {
+    html += `<th class="${colClass(i)}">
+      <div class="th-inner">${escHtml(h)}${colTag(i)}</div>
+    </th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  sample.forEach(row => {
+    html += '<tr>';
+    headers.forEach((_, i) => {
+      html += `<td class="${colClass(i)}">${escHtml((row[i] || '').trim())}</td>`;
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody>';
+  previewTable.innerHTML = html;
+}
+
+function csvEscape(val) {
+  if (/[,"\n\r]/.test(val)) return '"' + val.replace(/"/g, '""') + '"';
+  return val;
+}
+
+async function confirmUploadFromPreview() {
+  const frontCol = parseInt(assignFront.value);
+  const backCol  = parseInt(assignBack.value);
+  const noteCol  = parseInt(assignNote.value);
+
+  if (frontCol === backCol) {
+    alert('表面と裏面に同じ列を指定することはできません。');
+    return;
+  }
+
+  const { rows } = previewData;
+  const remappedRows = rows
+    .filter(r => (r[frontCol] || '').trim() && (r[backCol] || '').trim())
+    .map(r => {
+      const front = (r[frontCol] || '').trim();
+      const back  = (r[backCol]  || '').trim();
+      const note  = noteCol >= 0 ? (r[noteCol] || '').trim() : '';
+      return [front, back, note].map(csvEscape).join(',');
+    });
+
+  if (remappedRows.length === 0) {
+    alert('有効なカードデータが見つかりませんでした。列の割り当てを確認してください。');
+    return;
+  }
+
+  const csvText = remappedRows.join('\n');
+  const blob = new Blob([csvText], { type: 'text/csv' });
+  const renamedFile = new File([blob], previewFile.name, { type: 'text/csv' });
+
+  closePreview();
+  await uploadFile(renamedFile);
+}
+
+function closePreview() {
+  previewOverlay.style.display = 'none';
+  previewFile = null;
+  previewData = null;
+}
+
+/* ============================================================
+   ファイル選択ハンドラ（プレビューを挟む）
+============================================================ */
+async function handleFileSelected(file) {
+  if (!file.name.endsWith('.csv')) {
+    setStatus(uploadStatus, 'error', 'CSVファイルを選択してください。');
+    return;
+  }
+  if (!isConfigured) {
+    setStatus(uploadStatus, 'error', '設定が完了していません。');
+    return;
+  }
+
+  let text;
+  try {
+    text = await file.text();
+  } catch {
+    setStatus(uploadStatus, 'error', 'ファイルの読み込みに失敗しました。');
+    return;
+  }
+
+  const rawData = parseCSVRaw(text);
+  if (rawData.rows.length === 0) {
+    setStatus(uploadStatus, 'error', 'CSVにデータが見つかりませんでした。');
+    return;
+  }
+  if (rawData.headers.length < 2) {
+    setStatus(uploadStatus, 'error', '列が1つしかありません。表面・裏面の2列以上必要です。');
+    return;
+  }
+
+  showPreview(file, rawData);
+}
+
+/* ============================================================
    Supabase: ファイル一覧
 ============================================================ */
 async function loadFileList() {
@@ -266,13 +475,13 @@ function escHtml(str) {
 // ファイル選択ボタン
 selectFileBtn.addEventListener('click', () => fileInput.click());
 
-// アップロード
+// アップロード（プレビューを経由）
 fileInput.addEventListener('change', e => {
-  if (e.target.files[0]) uploadFile(e.target.files[0]);
+  if (e.target.files[0]) handleFileSelected(e.target.files[0]);
   e.target.value = '';
 });
 
-// ドラッグ＆ドロップ
+// ドラッグ＆ドロップ（プレビューを経由）
 dropZone.addEventListener('dragover', e => {
   e.preventDefault();
   dropZone.classList.add('drag-over');
@@ -282,8 +491,24 @@ dropZone.addEventListener('drop', e => {
   e.preventDefault();
   dropZone.classList.remove('drag-over');
   const f = e.dataTransfer.files[0];
-  if (f) uploadFile(f);
+  if (f) handleFileSelected(f);
 });
+
+// プレビューモーダル: 列変更でテーブルをリアルタイム更新
+[assignFront, assignBack, assignNote].forEach(sel => {
+  sel.addEventListener('change', updatePreviewTable);
+});
+
+// プレビューモーダル: キャンセル
+document.getElementById('preview-cancel-btn').addEventListener('click', closePreview);
+
+// プレビューモーダル: オーバーレイ外クリックで閉じる
+previewOverlay.addEventListener('click', e => {
+  if (e.target === previewOverlay) closePreview();
+});
+
+// プレビューモーダル: アップロード確定
+document.getElementById('preview-confirm-btn').addEventListener('click', confirmUploadFromPreview);
 
 // ファイル一覧クリック（学習 / 削除）
 fileListEl.addEventListener('click', e => {
