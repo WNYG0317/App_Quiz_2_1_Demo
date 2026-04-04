@@ -625,7 +625,8 @@ header p {
 /* 列バッジ（ラベル） */
 .badge-front,
 .badge-back,
-.badge-note {
+.badge-note,
+.badge-filename {
   display: inline-block;
   font-size: 0.75rem;
   font-weight: 700;
@@ -646,6 +647,26 @@ header p {
 .badge-note {
   background: #fff0b3;
   color: #7b5800;
+}
+
+.badge-filename {
+  background: #e8e8e8;
+  color: #555;
+}
+
+.assign-row input[type="text"] {
+  flex: 1;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 0.9rem;
+  background: #fff;
+  min-width: 0;
+}
+
+.assign-row input[type="text"]:focus {
+  border-color: var(--primary);
+  outline: none;
 }
 
 /* プレビューテーブル */
@@ -766,6 +787,11 @@ header p {
   }
 
   .assign-row select {
+    font-size: 0.82rem;
+    padding: 7px 8px;
+  }
+
+  .assign-row input[type="text"] {
     font-size: 0.82rem;
     padding: 7px 8px;
   }

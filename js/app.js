@@ -143,7 +143,26 @@ const previewRowInfo    = document.getElementById('preview-row-info');
 const assignFront       = document.getElementById('assign-front');
 const assignBack        = document.getElementById('assign-back');
 const assignNote        = document.getElementById('assign-note');
+const uploadFilenameEl  = document.getElementById('upload-filename');
 const previewTable      = document.getElementById('preview-table');
+
+function generateSafeFileName(originalName) {
+  const base = originalName.replace(/\.csv$/i, '');
+  // ASCII英数字・ハイフン・アンダースコア・スペースのみなら安全
+  if (/^[\x20-\x7E]+$/.test(base) && !/[<>:"/\\|?*]/.test(base)) {
+    return originalName;
+  }
+  // 非ASCII文字を含む場合はタイムスタンプベースの安全な名前を生成
+  const now = new Date();
+  const ts = now.getFullYear().toString()
+    + String(now.getMonth() + 1).padStart(2, '0')
+    + String(now.getDate()).padStart(2, '0')
+    + '_'
+    + String(now.getHours()).padStart(2, '0')
+    + String(now.getMinutes()).padStart(2, '0')
+    + String(now.getSeconds()).padStart(2, '0');
+  return `flashcard_${ts}.csv`;
+}
 
 function buildSelectOptions(sel, headers, defaultIdx, allowNone) {
   sel.innerHTML = '';
@@ -168,6 +187,7 @@ function showPreview(file, rawData) {
   previewData = rawData;
 
   previewFilenameEl.textContent = file.name;
+  uploadFilenameEl.value = generateSafeFileName(file.name);
 
   const { headers } = rawData;
   buildSelectOptions(assignFront, headers, 0,          false);
@@ -241,6 +261,22 @@ async function confirmUploadFromPreview() {
     return;
   }
 
+  // ファイル名のバリデーション
+  let uploadName = uploadFilenameEl.value.trim();
+  if (!uploadName) {
+    alert('保存ファイル名を入力してください。');
+    uploadFilenameEl.focus();
+    return;
+  }
+  if (!/^[\x20-\x7E]+$/.test(uploadName) || /[<>:"/\\|?*]/.test(uploadName)) {
+    alert('ファイル名に使用できない文字が含まれています。\n英数字・ハイフン・アンダースコアのみ使用してください。');
+    uploadFilenameEl.focus();
+    return;
+  }
+  if (!uploadName.toLowerCase().endsWith('.csv')) {
+    uploadName += '.csv';
+  }
+
   const { rows } = previewData;
   const remappedRows = rows
     .filter(r => (r[frontCol] || '').trim() && (r[backCol] || '').trim())
@@ -258,7 +294,7 @@ async function confirmUploadFromPreview() {
 
   const csvText = remappedRows.join('\n');
   const blob = new Blob([csvText], { type: 'text/csv' });
-  const renamedFile = new File([blob], previewFile.name, { type: 'text/csv' });
+  const renamedFile = new File([blob], uploadName, { type: 'text/csv' });
 
   closePreview();
   await uploadFile(renamedFile);
