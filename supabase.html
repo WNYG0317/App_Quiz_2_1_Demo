@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>単語カード — Supabase</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --primary: #4f6ef7;
+      --primary-dark: #3a56d4;
+      --secondary: #6c757d;
+      --danger: #e74c3c;
+      --danger-bg: #fdecea;
+      --success: #1e7e34;
+      --success-bg: #d4edda;
+      --warn-bg: #fff8e1;
+      --warn-border: #ffca28;
+      --text: #1a1a2e;
+      --text-sub: #555;
+      --border: #d0d5ea;
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.10);
+      --radius: 16px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 16px 48px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 640px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    header p {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      margin-top: 4px;
+    }
+
+    /* ===== 共通カード ===== */
+    .card-box {
+      width: 100%;
+      max-width: 640px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .card-box h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-sub);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ===== 設定警告 ===== */
+    #config-warning {
+      width: 100%;
+      max-width: 640px;
+      background: var(--warn-bg);
+      border: 2px solid var(--warn-border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      display: none;
+    }
+
+    #config-warning strong {
+      color: #b45309;
+    }
+
+    #config-warning code {
+      background: #fff3cd;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+
+    /* ===== アップロードエリア ===== */
+    .upload-zone {
+      border: 2.5px dashed #b0bcf7;
+      border-radius: 12px;
+      background: #eef1ff;
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+      background: #dde3ff;
+      border-color: var(--primary);
+    }
+
+    .upload-zone p {
+      font-size: 0.95rem;
+      color: var(--text-sub);
+      margin-bottom: 12px;
+    }
+
+    .upload-zone small {
+      font-size: 0.78rem;
+      color: #999;
+    }
+
+    #file-input {
+      display: none;
+    }
+
+    /* ===== ステータスメッセージ ===== */
+    .status {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      border-radius: 8px;
+      padding: 9px 13px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status.loading {
+      background: #eef1ff;
+      color: var(--primary);
+      display: flex;
+    }
+
+    .status.error {
+      background: var(--danger-bg);
+      color: var(--danger);
+      display: block;
+    }
+
+    .status.success {
+      background: var(--success-bg);
+      color: var(--success);
+      display: block;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #c0caff;
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ===== ファイル一覧 ===== */
+    #file-list-wrap {
+      position: relative;
+      min-height: 60px;
+    }
+
+    #list-loading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-sub);
+      font-size: 0.9rem;
+      padding: 8px 0;
+    }
+
+    #file-list {
+      list-style: none;
+    }
+
+    #file-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 4px;
+      border-bottom: 1px solid #f0f0f0;
+      gap: 10px;
+    }
+
+    #file-list li:last-child {
+      border-bottom: none;
+    }
+
+    .file-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .file-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-date {
+      font-size: 0.75rem;
+      color: #999;
+      margin-top: 2px;
+    }
+
+    .file-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .btn-study {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-study:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-delete {
+      background: none;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 0.85rem;
+      color: var(--danger);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-delete:hover {
+      background: var(--danger-bg);
+      border-color: var(--danger);
+    }
+
+    .no-files {
+      text-align: center;
+      padding: 20px 0;
+      font-size: 0.9rem;
+      color: #bbb;
+    }
+
+    /* ===== 共通ボタン ===== */
+    .btn-primary {
+      display: inline-block;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 22px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 8px;
+      transition: background 0.2s;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    /* ===== フラッシュカードセクション ===== */
+    #study-section {
+      width: 100%;
+      max-width: 640px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    #study-section.active {
+      display: flex;
+    }
+
+    /* 戻るリンク */
+    .back-row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-back {
+      background: none;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.9rem;
+      color: var(--text-sub);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-back:hover {
+      background: #f0f0f0;
+    }
+
+    .current-file-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* トップバー */
+    .top-bar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #counter {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
+
+    .btn-icon {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s, border-color 0.15s;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .btn-icon:hover {
+      background: #eef1ff;
+      border-color: var(--primary);
+    }
+
+    /* プログレスバー */
+    .progress-wrap {
+      width: 100%;
+      height: 6px;
+      background: #dde3f0;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    #progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), #7c93fa);
+      border-radius: 99px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    /* ===== カード ===== */
+    .card-scene {
+      width: 100%;
+      perspective: 1000px;
+    }
+
+    .flash-card {
+      width: 100%;
+      min-height: 260px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
+      cursor: pointer;
+    }
+
+    .flash-card.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      width: 100%;
+      min-height: 260px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 32px 28px;
+      text-align: center;
+      user-select: none;
+    }
+
+    .card-front {
+      background: var(--surface);
+    }
+
+    .card-back {
+      background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+      transform: rotateY(180deg);
+    }
+
+    .card-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 14px;
+      opacity: 0.7;
+    }
+
+    .card-word {
+      font-size: clamp(1.4rem, 5vw, 2.2rem);
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .card-note {
+      margin-top: 16px;
+      font-size: clamp(0.85rem, 2.5vw, 1rem);
+      color: var(--text-sub);
+      line-height: 1.6;
+      border-top: 1px solid #d0d8f0;
+      padding-top: 14px;
+      width: 100%;
+    }
+
+    .card-hint {
+      margin-top: 14px;
+      font-size: 0.78rem;
+      color: #bbb;
+    }
+
+    /* ナビ */
+    .nav-row {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .btn-nav {
+      flex: 1;
+      max-width: 180px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    }
+
+    .btn-nav:hover {
+      background: #eef1ff;
+      border-color: var(--primary);
+    }
+
+    .btn-nav:active {
+      transform: scale(0.97);
+    }
+
+    .btn-nav:disabled {
+      opacity: 0.35;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    @media (max-width: 400px) {
+      .card-face {
+        padding: 24px 18px;
+      }
+
+      .btn-nav {
+        font-size: 0.95rem;
+        padding: 13px 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>単語カード</h1>
+    <p>CSVをアップロードしてどこからでも学習できる</p>
+  </header>
+
+  <!-- 設定未完了警告 -->
+  <div id="config-warning">
+    ⚠️ <strong>Supabase の設定が必要です。</strong><br>
+    このファイルの先頭にある <code>SUPABASE_URL</code> と <code>SUPABASE_ANON_KEY</code> を
+    実際の値に書き換えてください。<br>
+    また、Supabase Storage に <code>flashcards</code> バケットを作成し、
+    RLSポリシーで anon ユーザーの <strong>読み取り・書き込み</strong> を許可してください。
+  </div>
+
+  <!-- ファイル管理セクション -->
+  <div id="manage-section">
+
+    <!-- アップロード -->
+    <div class="card-box">
+      <h2>📤 CSVをアップロード</h2>
+      <div class="upload-zone" id="drop-zone">
+        <p>ドラッグ＆ドロップ、または</p>
+        <button class="btn-primary" onclick="document.getElementById('file-input').click()">
+          ファイルを選択
+        </button>
+        <br>
+        <small>形式：表面, 裏面, 例文（省略可）/ ヘッダー行あり・なし両対応</small>
+        <input type="file" id="file-input" accept=".csv,text/csv">
+      </div>
+      <div class="status" id="upload-status"></div>
+    </div>
+
+    <!-- ファイル一覧 -->
+    <div class="card-box">
+      <h2>📂 保存済みCSV一覧</h2>
+      <div id="file-list-wrap">
+        <div id="list-loading">
+          <div class="spinner"></div><span>読み込み中...</span>
+        </div>
+        <ul id="file-list"></ul>
+        <p class="no-files" id="no-files" style="display:none">保存されたCSVはありません</p>
+      </div>
+      <div class="status" id="list-status"></div>
+    </div>
+
+  </div><!-- /manage-section -->
+
+  <!-- フラッシュカードセクション -->
+  <section id="study-section">
+
+    <div class="back-row">
+      <button class="btn-back" id="back-btn">← 一覧に戻る</button>
+      <span class="current-file-name" id="current-file-name"></span>
+    </div>
+
+    <div class="top-bar">
+      <span id="counter">1 / 1</span>
+      <button class="btn-icon" id="shuffle-btn">🔀 シャッフル</button>
+    </div>
+
+    <div class="progress-wrap">
+      <div id="progress-bar"></div>
+    </div>
+
+    <div class="card-scene">
+      <div class="flash-card" id="flash-card" tabindex="0" role="button" aria-label="カードをクリックして裏面を見る">
+        <div class="card-face card-front">
+          <div class="card-label">表面</div>
+          <div class="card-word" id="front-text"></div>
+          <div class="card-hint">タップ / クリックでめくる</div>
+        </div>
+        <div class="card-face card-back">
+          <div class="card-label">裏面</div>
+          <div class="card-word" id="back-text"></div>
+          <div class="card-note" id="note-text" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn-nav" id="prev-btn">← 前へ</button>
+      <button class="btn-nav" id="next-btn">次へ →</button>
+    </div>
+
+  </section>
+
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    /* ============================================================
+       ★ Supabase 設定 — ここを書き換えてください
+    ============================================================ */
+    const SUPABASE_URL = 'https://qsfftkdlqfazwriefcaj.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzZmZ0a2RscWZhendyaWVmY2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyODc0ODQsImV4cCI6MjA5MDg2MzQ4NH0.uWDyv6_eqOZMYWyl7kboOGrB-YvAAyGtv_CM5-30kQw';
+    const BUCKET = 'flashcards';
+
+    /* ============================================================
+       初期化
+    ============================================================ */
+    const isConfigured =
+      SUPABASE_URL.startsWith('https://') &&
+      !SUPABASE_URL.includes('YOUR_') &&
+      SUPABASE_ANON_KEY.length > 20 &&
+      !SUPABASE_ANON_KEY.includes('YOUR_');
+
+    if (!isConfigured) {
+      document.getElementById('config-warning').style.display = 'block';
+    }
+
+    const sbClient = isConfigured
+      ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      : null;
+
+    /* ============================================================
+       DOM 参照
+    ============================================================ */
+    const manageSection = document.getElementById('manage-section');
+    const studySection = document.getElementById('study-section');
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const uploadStatus = document.getElementById('upload-status');
+    const fileListEl = document.getElementById('file-list');
+    const listLoading = document.getElementById('list-loading');
+    const noFiles = document.getElementById('no-files');
+    const listStatus = document.getElementById('list-status');
+    const backBtn = document.getElementById('back-btn');
+    const currentFileName = document.getElementById('current-file-name');
+    const flashCard = document.getElementById('flash-card');
+    const frontText = document.getElementById('front-text');
+    const backText = document.getElementById('back-text');
+    const noteText = document.getElementById('note-text');
+    const counter = document.getElementById('counter');
+    const progressBar = document.getElementById('progress-bar');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const shuffleBtn = document.getElementById('shuffle-btn');
+
+    let cards = [], current = 0;
+
+    /* ============================================================
+       ステータス表示
+    ============================================================ */
+    function setStatus(el, type, msg) {
+      el.className = `status ${type}`;
+      el.innerHTML = type === 'loading'
+        ? `<div class="spinner"></div><span>${msg}</span>`
+        : msg;
+    }
+    function clearStatus(el) {
+      el.className = 'status';
+      el.textContent = '';
+    }
+
+    /* ============================================================
+       CSV パース
+    ============================================================ */
+    function parseCSV(text) {
+      const rows = text.trim().split(/\r?\n/).map(splitCSVLine);
+      let start = 0;
+      if (rows.length > 1) {
+        const headerKw = /^(裏面|back|answer|意味|english|japanese|word|front|表面|term|definition|note|例文|補足)/i;
+        if (rows[0].length >= 2 && headerKw.test(rows[0][0])) start = 1;
+      }
+      const result = [];
+      for (let i = start; i < rows.length; i++) {
+        const r = rows[i];
+        if (r.length >= 2 && r[0].trim() && r[1].trim()) {
+          result.push({ front: r[0].trim(), back: r[1].trim(), note: (r[2] || '').trim() });
+        }
+      }
+      return result;
+    }
+
+    function splitCSVLine(line) {
+      const result = []; let inQ = false, cur = '';
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+          else inQ = !inQ;
+        } else if (ch === ',' && !inQ) { result.push(cur); cur = ''; }
+        else { cur += ch; }
+      }
+      result.push(cur);
+      return result;
+    }
+
+    /* ============================================================
+       Supabase: ファイル一覧
+    ============================================================ */
+    async function loadFileList() {
+      if (!isConfigured) {
+        listLoading.style.display = 'none';
+        noFiles.style.display = 'block';
+        noFiles.textContent = '設定が完了していません。';
+        return;
+      }
+
+      listLoading.style.display = 'flex';
+      fileListEl.innerHTML = '';
+      noFiles.style.display = 'none';
+      clearStatus(listStatus);
+
+      const { data, error } = await sbClient.storage.from(BUCKET).list('', {
+        sortBy: { column: 'created_at', order: 'desc' }
+      });
+
+      listLoading.style.display = 'none';
+
+      if (error) {
+        setStatus(listStatus, 'error', `一覧の取得に失敗しました: ${error.message}`);
+        return;
+      }
+
+      const csvFiles = (data || []).filter(f => f.name.endsWith('.csv') && f.name !== '.emptyFolderPlaceholder');
+
+      if (!csvFiles.length) {
+        noFiles.style.display = 'block';
+        return;
+      }
+
+      csvFiles.forEach(f => {
+        const date = f.created_at
+          ? new Date(f.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+          : '';
+
+        const li = document.createElement('li');
+        li.innerHTML = `
+        <div class="file-info">
+          <div class="file-name" title="${escHtml(f.name)}">${escHtml(f.name)}</div>
+          <div class="file-date">${date}</div>
+        </div>
+        <div class="file-actions">
+          <button class="btn-study" data-name="${escHtml(f.name)}">学習開始</button>
+          <button class="btn-delete" data-name="${escHtml(f.name)}" title="削除">🗑</button>
+        </div>
+      `;
+        fileListEl.appendChild(li);
+      });
+    }
+
+    /* ============================================================
+       Supabase: アップロード
+    ============================================================ */
+    async function uploadFile(file) {
+      if (!isConfigured) { setStatus(uploadStatus, 'error', '設定が完了していません。'); return; }
+      if (!file.name.endsWith('.csv')) { setStatus(uploadStatus, 'error', 'CSVファイルを選択してください。'); return; }
+
+      setStatus(uploadStatus, 'loading', `"${file.name}" をアップロード中...`);
+
+      const { error } = await sbClient.storage.from(BUCKET).upload(file.name, file, { upsert: true });
+
+      if (error) {
+        setStatus(uploadStatus, 'error', `アップロード失敗: ${error.message}`);
+      } else {
+        setStatus(uploadStatus, 'success', `✓ "${file.name}" を保存しました`);
+        await loadFileList();
+        setTimeout(() => clearStatus(uploadStatus), 3000);
+      }
+    }
+
+    /* ============================================================
+       Supabase: ダウンロード → 学習開始
+    ============================================================ */
+    async function startStudy(filename) {
+      setStatus(listStatus, 'loading', `"${filename}" を読み込み中...`);
+
+      const { data, error } = await sbClient.storage.from(BUCKET).download(filename);
+
+      if (error) {
+        setStatus(listStatus, 'error', `読み込み失敗: ${error.message}`);
+        return;
+      }
+
+      const text = await data.text();
+      const cards_data = parseCSV(text);
+
+      if (!cards_data.length) {
+        setStatus(listStatus, 'error', 'カードデータが見つかりませんでした。CSV の形式を確認してください。');
+        return;
+      }
+
+      clearStatus(listStatus);
+      launchStudy(cards_data, filename);
+    }
+
+    /* ============================================================
+       Supabase: 削除
+    ============================================================ */
+    async function deleteFile(filename) {
+      if (!confirm(`"${filename}" を削除しますか？`)) return;
+
+      const { error } = await sbClient.storage.from(BUCKET).remove([filename]);
+
+      if (error) {
+        setStatus(listStatus, 'error', `削除失敗: ${error.message}`);
+      } else {
+        await loadFileList();
+      }
+    }
+
+    /* ============================================================
+       学習セクション
+    ============================================================ */
+    function launchStudy(data, filename) {
+      cards = data;
+      current = 0;
+      currentFileName.textContent = filename;
+      manageSection.style.display = 'none';
+      studySection.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showCard(0);
+    }
+
+    function showCard(index) {
+      const c = cards[index];
+      flashCard.classList.remove('flipped');
+      setTimeout(() => {
+        frontText.textContent = c.front;
+        backText.textContent = c.back;
+        noteText.textContent = c.note;
+        noteText.style.display = c.note ? 'block' : 'none';
+      }, 50);
+      counter.textContent = `${index + 1} / ${cards.length}`;
+      progressBar.style.width = ((index + 1) / cards.length * 100) + '%';
+      prevBtn.disabled = index === 0;
+      nextBtn.disabled = index === cards.length - 1;
+    }
+
+    /* ============================================================
+       ユーティリティ
+    ============================================================ */
+    function escHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /* ============================================================
+       イベント
+    ============================================================ */
+
+    // アップロード
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) uploadFile(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const f = e.dataTransfer.files[0];
+      if (f) uploadFile(f);
+    });
+
+    // ファイル一覧クリック（学習 / 削除）
+    fileListEl.addEventListener('click', e => {
+      const studyBtn = e.target.closest('.btn-study');
+      const deleteBtn = e.target.closest('.btn-delete');
+      if (studyBtn) startStudy(studyBtn.dataset.name);
+      if (deleteBtn) deleteFile(deleteBtn.dataset.name);
+    });
+
+    // カードめくり
+    flashCard.addEventListener('click', () => flashCard.classList.toggle('flipped'));
+    flashCard.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flashCard.classList.toggle('flipped'); }
+    });
+
+    // ナビ
+    prevBtn.addEventListener('click', () => { if (current > 0) showCard(--current); });
+    nextBtn.addEventListener('click', () => { if (current < cards.length - 1) showCard(++current); });
+
+    // キーボード
+    document.addEventListener('keydown', e => {
+      if (!studySection.classList.contains('active')) return;
+      if (e.key === 'ArrowRight') nextBtn.click();
+      if (e.key === 'ArrowLeft') prevBtn.click();
+    });
+
+    // シャッフル
+    shuffleBtn.addEventListener('click', () => {
+      for (let i = cards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cards[i], cards[j]] = [cards[j], cards[i]];
+      }
+      current = 0;
+      showCard(0);
+    });
+
+    // 一覧に戻る
+    backBtn.addEventListener('click', () => {
+      studySection.classList.remove('active');
+      manageSection.style.display = 'block';
+    });
+
+    /* ============================================================
+       起動
+    ============================================================ */
+    loadFileList();
+  </script>
+</body>
+
+</html>
