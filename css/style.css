@@ -1,0 +1,528 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #f0f4f8;
+  --surface: #ffffff;
+  --primary: #4f6ef7;
+  --primary-dark: #3a56d4;
+  --secondary: #6c757d;
+  --danger: #e74c3c;
+  --danger-bg: #fdecea;
+  --success: #1e7e34;
+  --success-bg: #d4edda;
+  --warn-bg: #fff8e1;
+  --warn-border: #ffca28;
+  --text: #1a1a2e;
+  --text-sub: #555;
+  --border: #d0d5ea;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.10);
+  --radius: 16px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 16px 48px;
+}
+
+header {
+  width: 100%;
+  max-width: 640px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+header p {
+  font-size: 0.85rem;
+  color: var(--text-sub);
+  margin-top: 4px;
+}
+
+/* ===== 共通カード ===== */
+.card-box {
+  width: 100%;
+  max-width: 640px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.card-box h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-sub);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 設定警告 ===== */
+#config-warning {
+  width: 100%;
+  max-width: 640px;
+  background: var(--warn-bg);
+  border: 2px solid var(--warn-border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  display: none;
+}
+
+#config-warning strong {
+  color: #b45309;
+}
+
+#config-warning code {
+  background: #fff3cd;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+/* ===== アップロードエリア ===== */
+.upload-zone {
+  border: 2.5px dashed #b0bcf7;
+  border-radius: 12px;
+  background: #eef1ff;
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.upload-zone:hover,
+.upload-zone.drag-over {
+  background: #dde3ff;
+  border-color: var(--primary);
+}
+
+.upload-zone p {
+  font-size: 0.95rem;
+  color: var(--text-sub);
+  margin-bottom: 12px;
+}
+
+.upload-zone small {
+  font-size: 0.78rem;
+  color: #999;
+}
+
+#file-input {
+  display: none;
+}
+
+/* ===== ステータスメッセージ ===== */
+.status {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  padding: 9px 13px;
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.status.loading {
+  background: #eef1ff;
+  color: var(--primary);
+  display: flex;
+}
+
+.status.error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  display: block;
+}
+
+.status.success {
+  background: var(--success-bg);
+  color: var(--success);
+  display: block;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #c0caff;
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== ファイル一覧 ===== */
+#file-list-wrap {
+  position: relative;
+  min-height: 60px;
+}
+
+#list-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-sub);
+  font-size: 0.9rem;
+  padding: 8px 0;
+}
+
+#file-list {
+  list-style: none;
+}
+
+#file-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 4px;
+  border-bottom: 1px solid #f0f0f0;
+  gap: 10px;
+}
+
+#file-list li:last-child {
+  border-bottom: none;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-date {
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 2px;
+}
+
+.file-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-study {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.btn-study:hover {
+  background: var(--primary-dark);
+}
+
+.btn-delete {
+  background: none;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 0.85rem;
+  color: var(--danger);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-delete:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+}
+
+.no-files {
+  display: none;
+  text-align: center;
+  padding: 20px 0;
+  font-size: 0.9rem;
+  color: #bbb;
+}
+
+/* ===== 共通ボタン ===== */
+.btn-primary {
+  display: inline-block;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+/* ===== フラッシュカードセクション ===== */
+#study-section {
+  width: 100%;
+  max-width: 640px;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+#study-section.active {
+  display: flex;
+}
+
+/* 戻るリンク */
+.back-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-back {
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-back:hover {
+  background: #f0f0f0;
+}
+
+.current-file-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* トップバー */
+.top-bar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#counter {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.btn-icon {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s, border-color 0.15s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.btn-icon:hover {
+  background: #eef1ff;
+  border-color: var(--primary);
+}
+
+/* プログレスバー */
+.progress-wrap {
+  width: 100%;
+  height: 6px;
+  background: #dde3f0;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+#progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #7c93fa);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+/* ===== カード ===== */
+.card-scene {
+  width: 100%;
+  perspective: 1000px;
+}
+
+.flash-card {
+  width: 100%;
+  min-height: 260px;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
+  cursor: pointer;
+}
+
+.flash-card.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-face {
+  position: absolute;
+  width: 100%;
+  min-height: 260px;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 32px 28px;
+  text-align: center;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.card-front {
+  background: var(--surface);
+}
+
+.card-back {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+  transform: rotateY(180deg);
+}
+
+.card-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 14px;
+  opacity: 0.7;
+}
+
+.card-word {
+  font-size: clamp(1.4rem, 5vw, 2.2rem);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.card-note {
+  display: none;
+  margin-top: 16px;
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  color: var(--text-sub);
+  line-height: 1.6;
+  border-top: 1px solid #d0d8f0;
+  padding-top: 14px;
+  width: 100%;
+}
+
+.card-hint {
+  margin-top: 14px;
+  font-size: 0.78rem;
+  color: #bbb;
+}
+
+/* ナビ */
+.nav-row {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.btn-nav {
+  flex: 1;
+  max-width: 180px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.btn-nav:hover {
+  background: #eef1ff;
+  border-color: var(--primary);
+}
+
+.btn-nav:active {
+  transform: scale(0.97);
+}
+
+.btn-nav:disabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
+
+@media (max-width: 400px) {
+  .card-face {
+    padding: 24px 18px;
+  }
+
+  .btn-nav {
+    font-size: 0.95rem;
+    padding: 13px 0;
+  }
+}
