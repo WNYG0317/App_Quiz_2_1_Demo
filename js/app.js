@@ -570,8 +570,11 @@ nextBtn.addEventListener('click', () => { if (current < cards.length - 1) showCa
 // キーボードナビ
 document.addEventListener('keydown', e => {
   if (!studySection.classList.contains('active')) return;
-  if (e.key === 'ArrowRight') nextBtn.click();
-  if (e.key === 'ArrowLeft')  prevBtn.click();
+  // テキスト入力中は無視
+  if (e.target.matches('input, textarea, select')) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); nextBtn.click(); }
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); prevBtn.click(); }
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flashCard.classList.toggle('flipped'); }
 });
 
 // シャッフル
