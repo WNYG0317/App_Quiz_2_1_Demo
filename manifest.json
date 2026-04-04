@@ -1,0 +1,24 @@
+{
+  "name": "単語カード",
+  "short_name": "単語カード",
+  "description": "CSVをアップロードしてどこからでも学習できるフラッシュカードアプリ",
+  "start_url": "./Index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f0f4f8",
+  "theme_color": "#4f6ef7",
+  "icons": [
+    {
+      "src": ".img/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": ".img/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

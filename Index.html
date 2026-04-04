@@ -4,7 +4,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>単語カード — Supabase</title>
+  <title>単語カード</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href=".img/icon.svg">
+  <link rel="apple-touch-icon" href=".img/icon.svg">
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#4f6ef7">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="単語カード">
   <style>
     *,
     *::before,
@@ -279,6 +289,7 @@
     }
 
     .no-files {
+      display: none;
       text-align: center;
       padding: 20px 0;
       font-size: 0.9rem;
@@ -424,8 +435,8 @@
       position: absolute;
       width: 100%;
       min-height: 260px;
-      backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       display: flex;
@@ -434,6 +445,7 @@
       align-items: center;
       padding: 32px 28px;
       text-align: center;
+      -webkit-user-select: none;
       user-select: none;
     }
 
@@ -465,6 +477,7 @@
     }
 
     .card-note {
+      display: none;
       margin-top: 16px;
       font-size: clamp(0.85rem, 2.5vw, 1rem);
       color: var(--text-sub);
@@ -558,7 +571,7 @@
       <h2>📤 CSVをアップロード</h2>
       <div class="upload-zone" id="drop-zone">
         <p>ドラッグ＆ドロップ、または</p>
-        <button class="btn-primary" onclick="document.getElementById('file-input').click()">
+        <button type="button" class="btn-primary" onclick="document.getElementById('file-input').click()">
           ファイルを選択
         </button>
         <br>
@@ -576,7 +589,7 @@
           <div class="spinner"></div><span>読み込み中...</span>
         </div>
         <ul id="file-list"></ul>
-        <p class="no-files" id="no-files" style="display:none">保存されたCSVはありません</p>
+        <p class="no-files" id="no-files">保存されたCSVはありません</p>
       </div>
       <div class="status" id="list-status"></div>
     </div>
@@ -587,13 +600,13 @@
   <section id="study-section">
 
     <div class="back-row">
-      <button class="btn-back" id="back-btn">← 一覧に戻る</button>
+      <button type="button" class="btn-back" id="back-btn">← 一覧に戻る</button>
       <span class="current-file-name" id="current-file-name"></span>
     </div>
 
     <div class="top-bar">
       <span id="counter">1 / 1</span>
-      <button class="btn-icon" id="shuffle-btn">🔀 シャッフル</button>
+      <button type="button" class="btn-icon" id="shuffle-btn">🔀 シャッフル</button>
     </div>
 
     <div class="progress-wrap">
@@ -610,14 +623,14 @@
         <div class="card-face card-back">
           <div class="card-label">裏面</div>
           <div class="card-word" id="back-text"></div>
-          <div class="card-note" id="note-text" style="display:none"></div>
+          <div class="card-note" id="note-text"></div>
         </div>
       </div>
     </div>
 
     <div class="nav-row">
-      <button class="btn-nav" id="prev-btn">← 前へ</button>
-      <button class="btn-nav" id="next-btn">次へ →</button>
+      <button type="button" class="btn-nav" id="prev-btn">← 前へ</button>
+      <button type="button" class="btn-nav" id="next-btn">次へ →</button>
     </div>
 
   </section>
