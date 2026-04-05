@@ -30,6 +30,7 @@ const noFiles         = document.getElementById('no-files');
 const listStatus      = document.getElementById('list-status');
 const backBtn         = document.getElementById('back-btn');
 const currentFileName = document.getElementById('current-file-name');
+const modeBadge       = document.getElementById('mode-badge');
 const flashCard       = document.getElementById('flash-card');
 const frontText       = document.getElementById('front-text');
 const backText        = document.getElementById('back-text');
@@ -392,6 +393,7 @@ async function loadFileList() {
       </div>
       <div class="file-actions">
         <button type="button" class="btn-study" data-name="${escHtml(f.name)}">学習開始</button>
+        <button type="button" class="btn-test"  data-name="${escHtml(f.name)}">テスト開始</button>
         <button type="button" class="btn-delete" data-name="${escHtml(f.name)}" title="削除">🗑</button>
       </div>
     `;
@@ -426,9 +428,17 @@ async function uploadFile(file) {
 }
 
 /* ============================================================
-   Supabase: ダウンロード → 学習開始
+   Supabase: ダウンロード → 学習開始 / テスト開始
 ============================================================ */
 async function startStudy(filename) {
+  await _loadAndLaunch(filename, 'study');
+}
+
+async function startTest(filename) {
+  await _loadAndLaunch(filename, 'test');
+}
+
+async function _loadAndLaunch(filename, mode) {
   setStatus(listStatus, 'loading', `"${filename}" を読み込み中...`);
 
   const { data, error } = await sbClient.storage.from(BUCKET).download(filename);
@@ -439,15 +449,19 @@ async function startStudy(filename) {
   }
 
   const text = await data.text();
-  const cardsData = parseCSV(text);
+  let cardsData = parseCSV(text);
 
   if (!cardsData.length) {
     setStatus(listStatus, 'error', 'カードデータが見つかりませんでした。CSV の形式を確認してください。');
     return;
   }
 
+  if (mode === 'test') {
+    cardsData = cardsData.map(c => ({ front: c.back, back: c.front, note: c.note }));
+  }
+
   clearStatus(listStatus);
-  launchStudy(cardsData, filename);
+  launchStudy(cardsData, filename, mode);
 }
 
 /* ============================================================
@@ -468,10 +482,17 @@ async function deleteFile(filename) {
 /* ============================================================
    学習セクション
 ============================================================ */
-function launchStudy(data, filename) {
+function launchStudy(data, filename, mode) {
   cards = data;
   current = 0;
   currentFileName.textContent = filename;
+  if (mode === 'test') {
+    modeBadge.textContent = 'テストモード';
+    modeBadge.className = 'mode-badge test';
+  } else {
+    modeBadge.textContent = '学習モード';
+    modeBadge.className = 'mode-badge study';
+  }
   manageSection.style.display = 'none';
   studySection.classList.add('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -546,11 +567,13 @@ previewOverlay.addEventListener('click', e => {
 // プレビューモーダル: アップロード確定
 document.getElementById('preview-confirm-btn').addEventListener('click', confirmUploadFromPreview);
 
-// ファイル一覧クリック（学習 / 削除）
+// ファイル一覧クリック（学習 / テスト / 削除）
 fileListEl.addEventListener('click', e => {
   const studyBtn  = e.target.closest('.btn-study');
+  const testBtn   = e.target.closest('.btn-test');
   const deleteBtn = e.target.closest('.btn-delete');
   if (studyBtn)  startStudy(studyBtn.dataset.name);
+  if (testBtn)   startTest(testBtn.dataset.name);
   if (deleteBtn) deleteFile(deleteBtn.dataset.name);
 });
 

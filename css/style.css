@@ -254,6 +254,23 @@ header p {
   background: var(--primary-dark);
 }
 
+.btn-test {
+  background: #17a27a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.btn-test:hover {
+  background: #128a65;
+}
+
 .btn-delete {
   background: none;
   border: 1.5px solid #e0e0e0;
@@ -341,6 +358,25 @@ header p {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.mode-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mode-badge.study {
+  background: #dde3ff;
+  color: var(--primary);
+}
+
+.mode-badge.test {
+  background: #d0f0e8;
+  color: #17a27a;
 }
 
 /* トップバー */
