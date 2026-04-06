@@ -501,13 +501,17 @@ function launchStudy(data, filename, mode) {
 
 function showCard(index) {
   const c = cards[index];
+  const wasFlipped = flashCard.classList.contains('flipped');
   flashCard.classList.remove('flipped');
+  // If the card was flipped, wait until it rotates past 90° (mid-animation)
+  // before updating content so the new card's back is never visible during the flip.
+  const delay = wasFlipped ? 260 : 0;
   setTimeout(() => {
     frontText.textContent = c.front;
     backText.textContent  = c.back;
     noteText.textContent  = c.note;
     noteText.style.display = c.note ? 'block' : 'none';
-  }, 50);
+  }, delay);
   counter.textContent = `${index + 1} / ${cards.length}`;
   progressBar.style.width = `${(index + 1) / cards.length * 100}%`;
   prevBtn.disabled = index === 0;

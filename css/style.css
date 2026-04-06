@@ -358,6 +358,8 @@ header p {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
 }
 
 .mode-badge {
@@ -440,6 +442,7 @@ header p {
   width: 100%;
   min-height: 260px;
   position: relative;
+  -webkit-transform-style: preserve-3d;
   transform-style: preserve-3d;
   transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
   cursor: pointer;
@@ -550,6 +553,23 @@ header p {
   opacity: 0.35;
   cursor: default;
   pointer-events: none;
+}
+
+@media (max-width: 480px) {
+  #file-list li {
+    flex-wrap: wrap;
+  }
+
+  .file-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .btn-study,
+  .btn-test {
+    font-size: 0.82rem;
+    padding: 7px 10px;
+  }
 }
 
 @media (max-width: 400px) {
