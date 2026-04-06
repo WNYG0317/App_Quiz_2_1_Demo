@@ -44,6 +44,53 @@ const shuffleBtn      = document.getElementById('shuffle-btn');
 let cards = [], current = 0;
 
 /* ============================================================
+   タグ管理 (localStorage)
+============================================================ */
+const TAGS_STORAGE_KEY = 'flashcard_tags';
+let activeTagFilter = '__all__';
+
+function getAllTags() {
+  try { return JSON.parse(localStorage.getItem(TAGS_STORAGE_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveAllTags(obj) { localStorage.setItem(TAGS_STORAGE_KEY, JSON.stringify(obj)); }
+function getFileTags(filename) { return getAllTags()[filename] || []; }
+function setFileTags(filename, tags) {
+  const all = getAllTags();
+  const unique = [...new Set(tags.map(t => t.trim()).filter(Boolean))];
+  if (unique.length) all[filename] = unique; else delete all[filename];
+  saveAllTags(all);
+}
+function removeFileFromTags(filename) {
+  const all = getAllTags(); delete all[filename]; saveAllTags(all);
+}
+function getUniqueTags() {
+  return [...new Set(Object.values(getAllTags()).flat().map(t => t.trim()).filter(Boolean))].sort();
+}
+
+function refreshTagFilter() {
+  const bar    = document.getElementById('tag-filter-bar');
+  const listEl = document.getElementById('tag-filter-list');
+  const tags   = getUniqueTags();
+  listEl.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.type = 'button';
+  allBtn.className = 'tag-filter-btn' + (activeTagFilter === '__all__' ? ' active' : '');
+  allBtn.dataset.tag = '__all__';
+  allBtn.textContent = 'すべて';
+  listEl.appendChild(allBtn);
+  tags.forEach(tag => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tag-filter-btn' + (activeTagFilter === tag ? ' active' : '');
+    btn.dataset.tag = tag;
+    btn.textContent = tag;
+    listEl.appendChild(btn);
+  });
+  bar.style.display = tags.length ? 'flex' : 'none';
+}
+
+/* ============================================================
    ステータス表示
 ============================================================ */
 function setStatus(el, type, msg) {
@@ -145,6 +192,7 @@ const assignFront       = document.getElementById('assign-front');
 const assignBack        = document.getElementById('assign-back');
 const assignNote        = document.getElementById('assign-note');
 const uploadFilenameEl  = document.getElementById('upload-filename');
+const uploadTagsEl      = document.getElementById('upload-tags');
 const previewTable      = document.getElementById('preview-table');
 
 function generateSafeFileName(originalName) {
@@ -297,6 +345,11 @@ async function confirmUploadFromPreview() {
   const blob = new Blob([csvText], { type: 'text/csv' });
   const renamedFile = new File([blob], uploadName, { type: 'text/csv' });
 
+  // タグを保存
+  const tagStr = uploadTagsEl.value.trim();
+  const tags = tagStr ? tagStr.split(',').map(t => t.trim()).filter(Boolean) : [];
+  if (tags.length) setFileTags(uploadName, tags);
+
   closePreview();
   await uploadFile(renamedFile);
 }
@@ -305,6 +358,7 @@ function closePreview() {
   previewOverlay.style.display = 'none';
   previewFile = null;
   previewData = null;
+  uploadTagsEl.value = '';
 }
 
 /* ============================================================
@@ -372,12 +426,30 @@ async function loadFileList() {
     f => f.name.endsWith('.csv') && f.name !== '.emptyFolderPlaceholder'
   );
 
-  if (!csvFiles.length) {
+  // 削除済みファイルのタグをクリーンアップ
+  const existingNames = new Set(csvFiles.map(f => f.name));
+  const allTagsObj = getAllTags();
+  let tagsChanged = false;
+  Object.keys(allTagsObj).forEach(fn => {
+    if (!existingNames.has(fn)) { delete allTagsObj[fn]; tagsChanged = true; }
+  });
+  if (tagsChanged) saveAllTags(allTagsObj);
+
+  refreshTagFilter();
+
+  const filteredFiles = activeTagFilter === '__all__'
+    ? csvFiles
+    : csvFiles.filter(f => getFileTags(f.name).includes(activeTagFilter));
+
+  if (!filteredFiles.length) {
     noFiles.style.display = 'block';
+    noFiles.textContent = activeTagFilter === '__all__'
+      ? '保存されたCSVはありません'
+      : `タグ「${activeTagFilter}」のファイルはありません`;
     return;
   }
 
-  csvFiles.forEach(f => {
+  filteredFiles.forEach(f => {
     const date = f.created_at
       ? new Date(f.created_at).toLocaleString('ja-JP', {
           year: 'numeric', month: '2-digit', day: '2-digit',
@@ -385,15 +457,26 @@ async function loadFileList() {
         })
       : '';
 
+    const tags = getFileTags(f.name);
+    const tagsHTML = tags.map(t =>
+      `<span class="tag-badge" data-file="${escHtml(f.name)}" data-tag="${escHtml(t)}">${escHtml(t)}<span class="tag-remove" aria-label="タグを削除">×</span></span>`
+    ).join('');
+
     const li = document.createElement('li');
     li.innerHTML = `
       <div class="file-info">
         <div class="file-name" title="${escHtml(f.name)}">${escHtml(f.name)}</div>
         <div class="file-date">${date}</div>
+        <div class="file-tags">
+          ${tagsHTML}
+          <button type="button" class="btn-tag-add" data-name="${escHtml(f.name)}">＋ タグ</button>
+        </div>
       </div>
       <div class="file-actions">
-        <button type="button" class="btn-study" data-name="${escHtml(f.name)}">学習開始</button>
-        <button type="button" class="btn-test"  data-name="${escHtml(f.name)}">テスト開始</button>
+        <button type="button" class="btn-study"  data-name="${escHtml(f.name)}">学習開始</button>
+        <button type="button" class="btn-test"   data-name="${escHtml(f.name)}">テスト開始</button>
+        <button type="button" class="btn-csv"    data-name="${escHtml(f.name)}" title="CSVをダウンロード">⬇CSV</button>
+        <button type="button" class="btn-pdf"    data-name="${escHtml(f.name)}" title="PDFをダウンロード">📄PDF</button>
         <button type="button" class="btn-delete" data-name="${escHtml(f.name)}" title="削除">🗑</button>
       </div>
     `;
@@ -475,8 +558,140 @@ async function deleteFile(filename) {
   if (error) {
     setStatus(listStatus, 'error', `削除失敗: ${error.message}`);
   } else {
+    removeFileFromTags(filename);
     await loadFileList();
   }
+}
+
+/* ============================================================
+   CSV ダウンロード
+============================================================ */
+async function downloadCSV(filename) {
+  setStatus(listStatus, 'loading', `"${filename}" をダウンロード中...`);
+  const { data, error } = await sbClient.storage.from(BUCKET).download(filename);
+  if (error) {
+    setStatus(listStatus, 'error', `ダウンロード失敗: ${error.message}`);
+    return;
+  }
+  clearStatus(listStatus);
+  const url = URL.createObjectURL(data);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   PDF ダウンロード（印刷ウィンドウ）
+============================================================ */
+async function downloadPDF(filename) {
+  setStatus(listStatus, 'loading', `"${filename}" のPDFを生成中...`);
+  const { data, error } = await sbClient.storage.from(BUCKET).download(filename);
+  if (error) {
+    setStatus(listStatus, 'error', `PDF生成失敗: ${error.message}`);
+    return;
+  }
+  const text = await data.text();
+  const cardsData = parseCSV(text);
+  if (!cardsData.length) {
+    setStatus(listStatus, 'error', 'カードデータが見つかりませんでした。');
+    return;
+  }
+  clearStatus(listStatus);
+  const html = generatePrintHTML(filename, cardsData);
+  const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, '_blank');
+  if (!win) {
+    setStatus(listStatus, 'error', 'ポップアップがブロックされました。ブラウザの設定を確認してください。');
+    URL.revokeObjectURL(url);
+    return;
+  }
+  // 読み込み後に印刷ダイアログを開く
+  win.addEventListener('load', () => win.print(), { once: true });
+  // タブが閉じられた後 URL を解放
+  win.addEventListener('unload', () => URL.revokeObjectURL(url), { once: true });
+}
+
+function generatePrintHTML(title, cardsData) {
+  const cardsHTML = cardsData.map((c, i) => `
+    <div class="print-card">
+      <div class="card-num">${i + 1}</div>
+      <div class="front-label">表面</div>
+      <div class="card-front-text">${escHtml(c.front)}</div>
+      <div class="back-label">裏面</div>
+      <div class="card-back-text">${escHtml(c.back)}</div>
+      ${c.note ? `<div class="card-note-text">📝 ${escHtml(c.note)}</div>` : ''}
+    </div>
+  `).join('');
+
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>${escHtml(title)}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, 'Yu Gothic', sans-serif;
+      color: #1a1a2e; background: #f5f7fa; padding: 20px;
+    }
+    h1 { font-size: 1.1rem; color: #4f6ef7; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 2px solid #4f6ef7; }
+    .meta { font-size: 0.78rem; color: #999; margin-bottom: 20px; }
+    .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .print-card { background: #fff; border: 1.5px solid #d0d5ea; border-radius: 10px; padding: 14px 16px; page-break-inside: avoid; break-inside: avoid; }
+    .card-num { font-size: 0.68rem; color: #bbb; margin-bottom: 6px; }
+    .front-label { font-size: 0.68rem; font-weight: 700; color: #4f6ef7; margin-bottom: 3px; }
+    .back-label  { font-size: 0.68rem; font-weight: 700; color: #2e7d32; margin-bottom: 3px; margin-top: 8px; }
+    .card-front-text { font-size: 1rem; font-weight: 700; line-height: 1.4; padding-bottom: 8px; border-bottom: 1px solid #eee; word-break: break-word; }
+    .card-back-text { font-size: 0.9rem; line-height: 1.5; color: #333; word-break: break-word; }
+    .card-note-text { font-size: 0.78rem; color: #888; margin-top: 8px; font-style: italic; line-height: 1.5; word-break: break-word; }
+    @media print {
+      body { background: #fff; padding: 10mm 8mm; }
+      .cards-grid { gap: 8px; }
+      .print-card { border: 1px solid #ccc; border-radius: 6px; padding: 10px 12px; }
+    }
+    @media screen and (max-width: 520px) { .cards-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <h1>📚 ${escHtml(title)}</h1>
+  <div class="meta">全 ${cardsData.length} 件のカード</div>
+  <div class="cards-grid">${cardsHTML}</div>
+</body>
+</html>`;
+}
+
+/* ============================================================
+   タグ追加インライン UI
+============================================================ */
+function showTagInput(liEl, filename) {
+  const existing = liEl.querySelector('.tag-input-row');
+  if (existing) { existing.remove(); return; }
+
+  const row = document.createElement('div');
+  row.className = 'tag-input-row';
+  row.innerHTML = `
+    <input type="text" class="tag-new-input" placeholder="タグ名を入力" maxlength="30" autocomplete="off">
+    <button type="button" class="btn-tag-confirm">追加</button>
+    <button type="button" class="btn-tag-dismiss">✕</button>
+  `;
+  liEl.querySelector('.file-info').appendChild(row);
+  row.querySelector('.tag-new-input').focus();
+
+  function addTag() {
+    const val = row.querySelector('.tag-new-input').value.trim();
+    if (!val) return;
+    const tags = getFileTags(filename);
+    if (!tags.includes(val)) setFileTags(filename, [...tags, val]);
+    loadFileList();
+  }
+  row.querySelector('.btn-tag-confirm').addEventListener('click', addTag);
+  row.querySelector('.btn-tag-dismiss').addEventListener('click', () => row.remove());
+  row.querySelector('.tag-new-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addTag(); }
+    if (e.key === 'Escape') row.remove();
+  });
 }
 
 /* ============================================================
@@ -571,14 +786,37 @@ previewOverlay.addEventListener('click', e => {
 // プレビューモーダル: アップロード確定
 document.getElementById('preview-confirm-btn').addEventListener('click', confirmUploadFromPreview);
 
-// ファイル一覧クリック（学習 / テスト / 削除）
+// ファイル一覧クリック（学習 / テスト / ダウンロード / タグ / 削除）
 fileListEl.addEventListener('click', e => {
   const studyBtn  = e.target.closest('.btn-study');
   const testBtn   = e.target.closest('.btn-test');
   const deleteBtn = e.target.closest('.btn-delete');
+  const csvBtn    = e.target.closest('.btn-csv');
+  const pdfBtn    = e.target.closest('.btn-pdf');
+  const tagAddBtn = e.target.closest('.btn-tag-add');
+  const tagRemove = e.target.closest('.tag-remove');
   if (studyBtn)  startStudy(studyBtn.dataset.name);
   if (testBtn)   startTest(testBtn.dataset.name);
   if (deleteBtn) deleteFile(deleteBtn.dataset.name);
+  if (csvBtn)    downloadCSV(csvBtn.dataset.name);
+  if (pdfBtn)    downloadPDF(pdfBtn.dataset.name);
+  if (tagAddBtn) showTagInput(tagAddBtn.closest('li'), tagAddBtn.dataset.name);
+  if (tagRemove) {
+    const badge = tagRemove.closest('.tag-badge');
+    if (badge) {
+      const tags = getFileTags(badge.dataset.file).filter(t => t !== badge.dataset.tag);
+      setFileTags(badge.dataset.file, tags);
+      loadFileList();
+    }
+  }
+});
+
+// タグフィルタークリック
+document.getElementById('tag-filter-list').addEventListener('click', e => {
+  const btn = e.target.closest('.tag-filter-btn');
+  if (!btn) return;
+  activeTagFilter = btn.dataset.tag;
+  loadFileList();
 });
 
 // カードめくり

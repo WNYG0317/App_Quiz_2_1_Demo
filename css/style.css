@@ -555,6 +555,195 @@ header p {
   pointer-events: none;
 }
 
+/* ===== タグフィルターバー ===== */
+#tag-filter-bar {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.tag-filter-label {
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tag-filter-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-filter-btn {
+  background: #f0f0f0;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.tag-filter-btn:hover {
+  background: #e8eaff;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.tag-filter-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* ===== ファイルタグ ===== */
+.file-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #e8eaff;
+  color: var(--primary);
+  border-radius: 99px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.tag-remove {
+  cursor: pointer;
+  opacity: 0.55;
+  font-size: 0.7rem;
+  line-height: 1;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.tag-remove:hover {
+  opacity: 1;
+  color: var(--danger);
+}
+
+.btn-tag-add {
+  background: none;
+  border: 1.5px dashed #ccc;
+  border-radius: 99px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  color: #aaa;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-tag-add:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.tag-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.tag-new-input {
+  border: 1.5px solid var(--primary);
+  border-radius: 8px;
+  padding: 5px 9px;
+  font-size: 0.82rem;
+  color: var(--text);
+  background: #fff;
+  outline: none;
+  width: 160px;
+  min-width: 0;
+}
+
+.btn-tag-confirm {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-tag-dismiss {
+  background: none;
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 0.78rem;
+  color: #999;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-tag-dismiss:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* ===== ダウンロードボタン ===== */
+.btn-csv {
+  background: #0e7490;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.btn-csv:hover {
+  background: #0c5f78;
+}
+
+.btn-pdf {
+  background: #7c3aed;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.btn-pdf:hover {
+  background: #6d28d9;
+}
+
+/* ===== プレビューモーダル タグバッジ ===== */
+.badge-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: #e8eaff;
+  color: var(--primary);
+}
+
 @media (max-width: 480px) {
   #file-list li {
     flex-wrap: wrap;
@@ -569,6 +758,12 @@ header p {
   .btn-test {
     font-size: 0.82rem;
     padding: 7px 10px;
+  }
+
+  .btn-csv,
+  .btn-pdf {
+    font-size: 0.78rem;
+    padding: 7px 8px;
   }
 }
 

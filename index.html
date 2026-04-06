@@ -56,6 +56,11 @@
     <!-- ファイル一覧 -->
     <div class="card-box">
       <h2>📂 保存済みCSV一覧</h2>
+      <!-- タグフィルター -->
+      <div class="tag-filter-bar" id="tag-filter-bar">
+        <span class="tag-filter-label">絞り込み</span>
+        <div class="tag-filter-list" id="tag-filter-list"></div>
+      </div>
       <div id="file-list-wrap">
         <div id="list-loading">
           <div class="spinner"></div><span>読み込み中...</span>
@@ -130,6 +135,10 @@
         <div class="assign-row">
           <label><span class="badge-filename">保存ファイル名</span><span class="required">必須</span></label>
           <input type="text" id="upload-filename" placeholder="例: vocabulary_001.csv" autocomplete="off">
+        </div>
+        <div class="assign-row">
+          <label><span class="badge-tag">タグ</span><span class="optional">任意</span></label>
+          <input type="text" id="upload-tags" placeholder="例: 英語, Level1（カンマ区切り）" autocomplete="off">
         </div>
       </div>
 
